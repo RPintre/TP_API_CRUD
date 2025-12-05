@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Inscription</title>
+    <style>
+        body { font-family: Arial; background: #f4f4f4; display:flex; justify-content:center; align-items:center; height:100vh; }
+        form { background:white; padding:20px; border-radius:8px; width:300px; }
+        input { width:100%; padding:8px; margin:8px 0; }
+        button { width:100%; padding:10px; background:#333; color:white; border:none; cursor:pointer; }
+        a { display:block; margin-top:10px; text-align:center; }
+    </style>
+</head>
+<body>
+    <form method="post" action="{{ url_for('register') }}">
+        <h2>Inscription</h2>
+        <input type="text" name="username" placeholder="Nom d'utilisateur" required>
+        <input type="password" name="password" placeholder="Mot de passe" required>
+        <button type="submit">S'inscrire</button>
+        <a href="{{ url_for('login') }}">Déjà inscrit ? Se connecter</a>
+    </form>
+</body>
+</html>

@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Recherche de films</title>
+
+    <style>
+        .popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            overflow: overlay;
+            padding: 20px;
+        }
+
+        .popup {
+            background: transparent;
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 80%;
+            margin:20px;
+            text-align: center;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f4f4;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        table {
+            width: 90%;
+            margin: 0 auto;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px 12px;
+            text-align: left;
+        }
+
+        th {
+            background: #333;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background: #f0f0f0;
+        }
+    </style>
+</head>
+
+<body>
+
+<a href="{{ url_for('logout') }}" style="width: auto;padding: 10px;background-color: red;color:black; text-decoration: none;border-radius: 10px; ">deconnexion</a>
+
+<h1>Recherche de films</h1>
+
+<div class="popup-overlay" id="popupOverlay">
+    <div class="popup"></div>
+</div>
+
+<div style="width: 50%; margin: 20px auto;">
+    <input type="text" id="searchInput" placeholder="Rechercher un film..." style="width: 70%; padding: 8px;">
+    <button id="searchBtn" style="padding: 8px 12px;">Rechercher</button>
+</div>
+
+<div id="searchResults" style="width: 80%; margin: 0 auto;"></div>
+
+<script>
+const overlay = document.getElementById('popupOverlay');
+
+overlay.addEventListener('click', () => {
+    overlay.style.display = 'none';
+});
+
+document.getElementById("searchInput").addEventListener("keypress", function(e) {
+    if (e.key === "Enter") {
+        document.getElementById("searchBtn").click();
+    }
+});
+
+document.getElementById("searchBtn").addEventListener("click", function() {
+    const query = document.getElementById("searchInput").value.trim();
+    if (!query) return alert("Tapez un mot-clé pour rechercher.");
+    
+    // 🔥 APPEL AU BACKEND (plus de clé visible)
+    fetch(`/search?q=${query}`)
+        .then(res => res.json())
+        .then(data => {
+            const results = data.Response === "True" ? data.Search : [];
+            const container = document.getElementById("searchResults");
+            container.innerHTML = "";
+
+            if (results.length === 0) {
+                container.innerHTML = `<p>Aucun résultat trouvé pour "${query}".</p>`;
+                return;
+            }
+
+            let html = '<table><tr><th>Poster</th><th>Title</th><th>Year</th><th>Type</th><th>imdbID</th><th>Détails</th></tr>';
+
+            for (const film of results) {
+                html += `
+                <tr>
+                    <td><img src="${film.Poster}" style="width:100px;"></td>
+                    <td>${film.Title}</td>
+                    <td>${film.Year}</td>
+                    <td>${film.Type}</td>
+                    <td>${film.imdbID}</td>
+                    <td><button class="plus_detail">Plus de détails</button></td>
+                </tr>`;
+            }
+
+            html += '</table>';
+            container.innerHTML = html;
+
+            document.querySelectorAll(".plus_detail").forEach(button => {
+                button.addEventListener("click", function(event) {
+                    const row = event.target.parentElement.parentElement;
+                    const imdbID = row.querySelector("td:nth-child(5)").innerText;
+
+                    // 🔥 APPEL À L'AUTRE ROUTE PYTHON
+                    fetch(`/details?id=${imdbID}`)
+                        .then(res => res.json())
+                        .then(results => {
+                            overlay.style.display = 'flex';
+
+                            let html = `
+                            <div class="movie-card" style="
+                                border: 1px solid #ccc;
+                                border-radius: 10px;
+                                padding: 20px;
+                                max-width: 800px;
+                                background: #f9f9f9;
+                                box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+                            ">
+                                <h2>${results.Title}</h2>
+
+                                <div style="display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 15px;">
+                                    <div><strong>Rated:</strong> ${results.Rated}</div>
+                                    <div><strong>Released:</strong> ${results.Released}</div>
+                                    <div><strong>Runtime:</strong> ${results.Runtime}</div>
+                                    <div><strong>Genre:</strong> ${results.Genre}</div>
+                                    <div><strong>Director:</strong> ${results.Director}</div>
+                                    <div><strong>Writer:</strong> ${results.Writer}</div>
+                                    <div><strong>Actors:</strong> ${results.Actors}</div>
+                                </div>
+
+                                <p><strong>Plot:</strong> ${results.Plot}</p>
+
+                                <table><tr>
+                                    <td><img src="${results.Poster}" style="width:200px;"></td>
+                                    <td>
+                                        <strong>Ratings:</strong>
+                                        <ul>
+                                            ${results.Ratings.map(r => `<li>${r.Source}: ${r.Value}</li>`).join('')}
+                                        </ul>
+                                        <div><strong>Metascore:</strong> ${results.Metascore}</div>
+                                        <div><strong>IMDb Rating:</strong> ${results.imdbRating}</div>
+                                        <div><strong>IMDb Votes:</strong> ${results.imdbVotes}</div>
+                                        <div><strong>DVD:</strong> ${results.DVD}</div>
+                                        <div><strong>BoxOffice:</strong> ${results.BoxOffice}</div>
+                                    </td>
+                                </tr></table>
+                            </div>`;
+
+                            overlay.querySelector(".popup").innerHTML = html;
+                        });
+                });
+            });
+        });
+});
+</script>
+
+</body>
+</html>
